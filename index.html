@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calculadora de Datas — Cursos de Curta Duração · SENAI Ilhéus</title>
+<meta name="description" content="Calcule a data de término de cursos de curta duração do SENAI Ilhéus considerando dias de aula e feriados.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ===== TOKENS (cores provisórias; substituir pelos valores oficiais do manual da marca) ===== */
+:root{
+  --azul:#0B4EA2; --azul-esc:#08356F;
+  --bg:#F4F6F9; --surface:#FFFFFF; --ink:#14202E; --soft:#52606F; --line:#D9DFE7; --accent:#E8F0FB;
+  --err:#B3261E; --err-bg:#FDECEA; --warn:#7A4B00; --warn-bg:#FFF4DC;
+  --t-municipal-bg:#FBE4E4; --t-municipal:#8C1D1D;
+  --t-facultativo-bg:#FFF0CC; --t-facultativo:#7A4B00;
+  --t-recesso-bg:#EEE4F8; --t-recesso:#5A2D8C;
+  --t-estadual-bg:#DFF3E4; --t-estadual:#1F6B36;
+  --t-nacional-bg:#DCEBFB; --t-nacional:#0B4EA2;
+  --f-titulo:"Barlow","Segoe UI",Arial,sans-serif;
+  --f-texto:"Inter","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0E1620; --surface:#16212E; --ink:#EEF2F7; --soft:#A5B2C1; --line:#2A3949; --accent:#13233A;
+    --azul:#4C8DE0; --azul-esc:#0B4EA2;
+    --err:#FF8A80; --err-bg:#3A1A18; --warn:#FFD28A; --warn-bg:#35280E;
+    --t-municipal-bg:#3D1D1F; --t-municipal:#FFB4B4;
+    --t-facultativo-bg:#3A2D0E; --t-facultativo:#FFD28A;
+    --t-recesso-bg:#2C1F40; --t-recesso:#D9BFFF;
+    --t-estadual-bg:#17301F; --t-estadual:#A5E3B4;
+    --t-nacional-bg:#14283F; --t-nacional:#A9CCF7;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 var(--f-texto);padding-bottom:env(safe-area-inset-bottom)}
+h1,h2,h3{font-family:var(--f-titulo);margin:0;line-height:1.15}
+.mono{font-family:var(--f-mono)}
+:focus-visible{outline:3px solid var(--azul);outline-offset:2px}
+
+/* ===== CABEÇALHO ===== */
+.topo{position:relative;overflow:hidden;background:var(--azul-esc);color:#fff;padding:28px max(16px,env(safe-area-inset-left)) 28px max(16px,env(safe-area-inset-right))}
+.topo .f{position:absolute;transform:rotate(45deg);pointer-events:none}
+.topo .f1{width:220px;height:220px;right:-60px;top:-110px;background:rgba(76,141,224,.45)}
+.topo .f2{width:140px;height:140px;right:120px;top:-70px;background:rgba(255,255,255,.08)}
+.topo .f3{width:90px;height:90px;right:40px;bottom:-45px;background:rgba(255,255,255,.12)}
+.topo .f4{width:300px;height:300px;right:260px;bottom:-190px;background:rgba(76,141,224,.22)}
+.topo-in{position:relative;max-width:1180px;margin:0 auto}
+.marca{display:flex;align-items:center;gap:12px;margin-bottom:14px;font:600 14px var(--f-titulo);letter-spacing:.08em;text-transform:uppercase}
+.simbolo{width:34px;height:34px;background:#fff;clip-path:polygon(0 0,70% 0,100% 30%,100% 100%,0 100%);display:grid;place-items:center;flex:none}
+.simbolo::after{content:"";width:14px;height:14px;background:var(--azul-esc);transform:rotate(45deg)}
+.topo h1{font-size:clamp(26px,4.2vw,40px);font-weight:800;max-width:760px}
+.topo p{margin:8px 0 0;color:#D3E2F7;max-width:640px}
+
+/* ===== LAYOUT ===== */
+main{max-width:1180px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-left)) 32px max(16px,env(safe-area-inset-right));display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:900px){main{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--azul);padding:20px;margin-bottom:20px}
+.card:last-child{margin-bottom:0}
+.card h2{font-size:21px;font-weight:700;margin-bottom:14px}
+label,.rotulo{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
+.dica{color:var(--soft);font-size:13px;margin:4px 0 0}
+input[type=text],input[type=number],input[type=date],input[type=search],select,textarea{width:100%;min-height:44px;padding:9px 12px;border:1px solid var(--soft);border-radius:0;background:var(--surface);color:var(--ink);font:400 16px var(--f-texto)}
+input[type=number],input[type=date]{font-family:var(--f-mono)}
+textarea{min-height:110px;font-family:var(--f-mono);font-size:13px}
+.linha{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.linha{grid-template-columns:1fr}}
+button{font:600 15px var(--f-texto);min-height:44px;padding:8px 16px;border:1px solid var(--azul);background:var(--surface);color:var(--azul);border-radius:0;cursor:pointer}
+button:hover{background:var(--accent)}
+.principal{background:var(--azul);color:#fff;width:100%;font:700 18px var(--f-titulo);letter-spacing:.03em;min-height:52px;margin-top:20px;border-color:var(--azul)}
+@media (prefers-color-scheme:dark){.principal{background:#2F6FC4;border-color:#2F6FC4}}
+.principal:hover{background:var(--azul-esc)}
+.sec{background:transparent;color:var(--soft);border-color:var(--line)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:44px;font-size:14px;padding:6px 12px}
+.chip[aria-pressed=true]{background:var(--azul);color:#fff}
+@media (prefers-color-scheme:dark){.chip[aria-pressed=true]{background:#2F6FC4;border-color:#2F6FC4}}
+.dias{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px}
+.dias button{padding:6px 0;font-family:var(--f-mono);font-size:13px}
+.dias button[aria-pressed=true]{background:var(--azul);color:#fff}
+@media (prefers-color-scheme:dark){.dias button[aria-pressed=true]{background:#2F6FC4;border-color:#2F6FC4}}
+.chk{display:flex;gap:10px;align-items:flex-start;font-weight:500;margin:16px 0 0}
+.chk input{width:22px;height:22px;margin:2px 0 0;flex:none;accent-color:var(--azul)}
+details{border:1px solid var(--line);margin-top:16px}
+details>summary{cursor:pointer;padding:12px 14px;font-weight:600;min-height:44px;background:var(--accent);list-style:none;display:flex;justify-content:space-between;gap:8px}
+details>summary::after{content:"+";font-family:var(--f-mono)}
+details[open]>summary::after{content:"–"}
+details>summary::-webkit-details-marker{display:none}
+.corpo{padding:14px}
+
+/* ===== BUSCA ===== */
+.lista{list-style:none;margin:6px 0 0;padding:0;border:1px solid var(--line);max-height:280px;overflow:auto}
+.lista li button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);padding:10px 12px;color:var(--ink);font-weight:400}
+.lista li:last-child button{border-bottom:0}
+.lista .cod{font:600 12px var(--f-mono);color:var(--azul);margin-right:8px}
+.lista .ch{font:500 12px var(--f-mono);color:var(--soft);float:right;margin-left:8px}
+.lista .vazio{padding:10px 12px;color:var(--soft)}
+.faixa{margin-top:12px;background:var(--accent);border-left:4px solid var(--azul);padding:10px 14px;display:none}
+.faixa.on{display:block}
+.faixa b{font-family:var(--f-titulo);font-size:18px;display:block}
+.faixa span{font:500 13px var(--f-mono);color:var(--soft)}
+.tag{display:inline-block;font:600 11px var(--f-texto);letter-spacing:.04em;text-transform:uppercase;padding:2px 8px}
+.t-municipal{background:var(--t-municipal-bg);color:var(--t-municipal)}
+.t-facultativo{background:var(--t-facultativo-bg);color:var(--t-facultativo)}
+.t-recesso{background:var(--t-recesso-bg);color:var(--t-recesso)}
+.t-estadual,.t-regional{background:var(--t-estadual-bg);color:var(--t-estadual)}
+.t-nacional{background:var(--t-nacional-bg);color:var(--t-nacional)}
+.t-pot{background:var(--warn-bg);color:var(--warn)}
+
+/* ===== FERIADOS ===== */
+.fer{list-style:none;margin:0;padding:0;max-height:340px;overflow:auto;border:1px solid var(--line)}
+.fer li{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line);font-size:14px}
+.fer li:last-child{border-bottom:0}
+.fer input{width:22px;height:22px;accent-color:var(--azul)}
+.fer .dt{font-family:var(--f-mono);font-size:13px}
+.fer .x{min-height:36px;padding:2px 10px;color:var(--err);border-color:var(--err)}
+.fer li.off .nm{color:var(--soft);text-decoration:line-through}
+
+/* ===== RESULTADO ===== */
+.erro{background:var(--err-bg);color:var(--err);border-left:4px solid var(--err);padding:12px 14px;margin-bottom:16px;font-weight:500}
+.aviso{background:var(--warn-bg);color:var(--warn);border-left:4px solid #D99A00;padding:12px 14px;margin-top:14px;font-weight:500}
+.vazio-res{color:var(--soft);padding:24px 4px;text-align:center}
+.termino{background:var(--azul-esc);color:#fff;padding:22px 22px 24px;clip-path:polygon(0 0,calc(100% - 28px) 0,100% 28px,100% 100%,0 100%)}
+.termino small{display:block;font:600 13px var(--f-titulo);letter-spacing:.1em;text-transform:uppercase;color:#BBD3F2}
+.termino strong{display:block;font:800 clamp(24px,4vw,34px)/1.15 var(--f-titulo);margin-top:6px}
+.termino em{display:block;font:400 14px var(--f-mono);margin-top:8px;color:#D3E2F7;font-style:normal}
+dl.res{display:grid;grid-template-columns:auto 1fr;gap:0;margin:16px 0 0;border:1px solid var(--line)}
+dl.res dt,dl.res dd{margin:0;padding:9px 12px;border-bottom:1px solid var(--line)}
+dl.res dt{color:var(--soft);font-size:14px;background:var(--accent)}
+dl.res dd{font-weight:500;overflow-wrap:anywhere}
+dl.res dt:nth-last-of-type(1),dl.res dd:last-of-type{border-bottom:0}
+.pul{list-style:none;padding:0;margin:0}
+.pul li{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--line)}
+.pul li:last-child{border-bottom:0}
+.datas{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:4px 12px;font:400 13px var(--f-mono);margin:0;padding:0;list-style:none}
+.acoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.acoes button{flex:1 1 150px}
+.ok-msg{color:var(--t-estadual);font-weight:600;margin-top:8px;min-height:20px}
+footer{max-width:1180px;margin:0 auto;padding:8px max(16px,env(safe-area-inset-left)) 40px max(16px,env(safe-area-inset-right));color:var(--soft);font-size:13px}
+footer p{margin:6px 0}
+.sr{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+@media print{
+  body{background:#fff;color:#000}
+  .topo .f,#formulario,.acoes,footer .nao-imp,details:not(.imp)>*:not(summary){display:none!important}
+  .topo{background:#fff;color:#000;padding:0 0 8px}.topo p{display:none}.marca{color:#000}
+  main{display:block;padding:0}.card{border:1px solid #999;border-top:4px solid #000;break-inside:avoid}
+  .termino{background:#fff;color:#000;border:2px solid #000;clip-path:none}.termino small,.termino em{color:#000}
+  details.imp>*:not(summary){display:block!important}
+  details>summary::after{content:""}
+}
+</style>
+</head>
+<body>
+<header class="topo">
+  <span class="f f1"></span><span class="f f2"></span><span class="f f3"></span><span class="f f4"></span>
+  <div class="topo-in">
+    <div class="marca"><span class="simbolo" aria-hidden="true"></span><span>SENAI Bahia · Unidade Ilhéus</span></div>
+    <h1>Calculadora de Datas — Cursos de Curta Duração</h1>
+    <p>Escolha o curso, informe o início e os dias de aula. A data de término considera feriados e recessos.</p>
+  </div>
+</header>
+
+<main>
+  <!-- ===================== FORMULÁRIO ===================== -->
+  <div id="formulario">
+    <section class="card" aria-labelledby="h-curso">
+      <h2 id="h-curso">1. Curso</h2>
+      <label for="busca">Buscar curso por nome ou código</label>
+      <input type="search" id="busca" placeholder="Ex.: NR 35, Excel, NIP0133" autocomplete="off" aria-controls="resultados">
+      <ul class="lista" id="resultados" hidden></ul>
+      <div class="faixa" id="faixa" aria-live="polite"></div>
+
+      <div class="linha">
+        <div><label for="nome">Nome do curso</label><input type="text" id="nome" autocomplete="off"></div>
+        <div><label for="codigo">Código (opcional)</label><input type="text" id="codigo" autocomplete="off"></div>
+      </div>
+      <p class="dica">Para um curso que não está na lista, digite nome, código (opcional) e carga horária diretamente nos campos. Eles podem ser editados mesmo após escolher um curso.</p>
+
+      <details id="det-import">
+        <summary>Importar catálogo da planilha de cursos</summary>
+        <div class="corpo">
+          <p class="dica" style="margin-top:0">Copie as linhas no Excel (com o cabeçalho) e cole abaixo, ou escolha um arquivo CSV/TSV. Colunas reconhecidas: código, curso/nome e carga horária. A importação vale apenas até fechar a página; para torná-la permanente, atualize o bloco de catálogo do arquivo.</p>
+          <label for="imp-txt">Linhas copiadas do Excel</label>
+          <textarea id="imp-txt" spellcheck="false"></textarea>
+          <label for="imp-arq">ou arquivo CSV/TSV</label>
+          <input type="file" id="imp-arq" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain">
+          <label class="chk"><input type="checkbox" id="imp-subst"><span>Substituir o catálogo atual (desmarcado: acrescentar aos cursos existentes)</span></label>
+          <div class="acoes"><button type="button" id="imp-btn">Importar</button></div>
+          <p id="imp-res" role="status" class="dica" style="font-weight:500"></p>
+        </div>
+      </details>
+    </section>
+
+    <section class="card" aria-labelledby="h-calc">
+      <h2 id="h-calc">2. Dados do cálculo</h2>
+      <div class="linha">
+        <div><label for="carga">Carga horária total (h)</label><input type="number" id="carga" min="0.5" step="0.5" inputmode="decimal"></div>
+        <div><label for="hdia">Horas de aula por dia</label><input type="number" id="hdia" value="4" min="0.5" max="24" step="0.5" inputmode="decimal"></div>
+      </div>
+      <label for="inicio">Data de início</label>
+      <input type="date" id="inicio">
+
+      <div class="rotulo" id="rot-dias">Dias da semana</div>
+      <div class="chips" id="atalhos" role="group" aria-labelledby="rot-dias"></div>
+      <div class="dias" id="dias" role="group" aria-label="Dias da semana (combinação personalizada)"></div>
+
+      <label class="chk"><input type="checkbox" id="fac" checked><span>Considerar pontos facultativos (Carnaval, Corpus Christi, vésperas de Natal e Ano Novo) como dias sem aula</span></label>
+
+      <details id="det-fer">
+        <summary>Feriados, recessos e ajustes</summary>
+        <div class="corpo">
+          <p class="dica" style="margin-top:0">Desmarque um item para que aquela data conte como dia de aula.</p>
+          <ul class="fer" id="fer-lista"></ul>
+          <h3 style="font-size:17px;margin:18px 0 0">Adicionar feriado ou recesso</h3>
+          <div class="linha">
+            <div><label for="f-ini">Data inicial</label><input type="date" id="f-ini"></div>
+            <div><label for="f-fim">Data final (opcional)</label><input type="date" id="f-fim"></div>
+          </div>
+          <div class="linha">
+            <div><label for="f-nome">Nome</label><input type="text" id="f-nome" placeholder="Ex.: Recesso de fim de ano"></div>
+            <div><label for="f-tipo">Tipo</label>
+              <select id="f-tipo"><option value="recesso">Recesso</option><option value="municipal">Municipal</option><option value="regional">Regional</option><option value="estadual">Estadual</option><option value="nacional">Nacional</option></select></div>
+          </div>
+          <div class="acoes"><button type="button" id="f-add">Adicionar</button></div>
+          <p id="f-msg" role="status" class="dica" style="font-weight:500"></p>
+        </div>
+      </details>
+
+      <button type="button" class="principal" id="calcular">Calcular data de término</button>
+    </section>
+  </div>
+
+  <!-- ===================== RESULTADO ===================== -->
+  <section class="card" aria-labelledby="h-res" id="painel-res">
+    <h2 id="h-res">Resultado</h2>
+    <div id="res" aria-live="polite"><p class="vazio-res">Preencha os dados e clique em “Calcular data de término”.</p></div>
+  </section>
+</main>
+
+<footer>
+  <p><strong>Atenção:</strong> os feriados pré-carregados vêm das fontes oficiais disponíveis (calendário nacional, decretos estaduais e o anexo do Decreto Judiciário nº 09/2026 do TJ-BA para as datas municipais de Ilhéus). Decretos podem mudar ao longo do ano. O coordenador deve conferir o ato da Prefeitura de Ilhéus e usar o painel “Feriados, recessos e ajustes” para corrigir ou incluir datas.</p>
+  <p class="nao-imp">As cores da identidade visual são provisórias e não representam os códigos oficiais da marca.</p>
+</footer>
+<textarea id="copia-alt" class="sr" aria-hidden="true" tabindex="-1"></textarea>
+
+<script>
+/* =====================================================================
+   BLOCO 1 — CATÁLOGO DE CURSOS (dados)
+   Fonte: planilha “CURSO PORTFÓLIO GERAL”, abas visíveis
+   (PORTFÓLIO 2018-2020 - OFICIAL; EAD e Semipresencial; OFERTA EXCLUSIVA DO OESTE).
+   Campos: codigo, nome, carga (horas) e, quando a planilha indica algo
+   diferente de “COMUNIDADE” puro, pot (Potencial de Mercado, como na planilha).
+   Para atualizar: substitua apenas as linhas abaixo (ver instruções de entrega).
+   ===================================================================== */
+const CATALOGO_BASE = [
+  {codigo:"NCAP0952",nome:"Administração do windows Server",carga:60},
+  {codigo:"NCQP0202",nome:"Agente de Inspeção de Qualidade",carga:160},
+  {codigo:"NCAP0648",nome:"Alinhamento de Eixos",carga:40},
+  {codigo:"NIP0719",nome:"Alinhamento e Balanceamento Automotivo",carga:20},
+  {codigo:"NCQP0121",nome:"Almoxarife",carga:160,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"ECQP0011",nome:"Almoxarife",carga:160,pot:"100% EAD"},
+  {codigo:"NCQP0340",nome:"Almoxarife de Obras",carga:160,pot:"EMPRESA"},
+  {codigo:"NCQP0256",nome:"Amostrador de Matrizes Ambientais",carga:184},
+  {codigo:"NCAP1265",nome:"Aperfeiçoamento em Flexografia",carga:20,pot:"EMPRESA"},
+  {codigo:"NCAP0531",nome:"Aperfeiçoamento em Operação de Talha Elétrica",carga:8,pot:"EMPRESA"},
+  {codigo:"NCAP1269",nome:"Aperfeiçoamento em Polímeros",carga:20,pot:"EMPRESA"},
+  {codigo:"NCAP1266",nome:"Aperfeiçoamento em Processamento de Polímeros",carga:40,pot:"EMPRESA"},
+  {codigo:"NCAP0670",nome:"Aperfeiçoamento na Operação de Caminhão Guindauto",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP0515",nome:"Aperfeiçoamento na Operação de Empilhadeira a Combustão",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP1300",nome:"Aperfeiçoamento na Operação de Empilhadeira Elétrica",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP0576",nome:"Aperfeiçoamento na Operação de Paleteira Elétrica",carga:8,pot:"EMPRESA"},
+  {codigo:"NCAP1161",nome:"Aperfeiçoamento na Operação de Plataforma Elevatória Móvel de Trabalho - PEMT",carga:8,pot:"EMPRESA"},
+  {codigo:"NCAP0540",nome:"Aperfeiçoamento na Operação de Ponte Rolante",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP0539",nome:"Aperfeiçoamento na Operação de Pá Carregadeira",carga:24,pot:"EMPRESA"},
+  {codigo:"NCAP1193",nome:"Aperfeiçoamento na Operação de Transpaleteira Elétrica",carga:8,pot:"EMPRESA"},
+  {codigo:"NCQP0124",nome:"Aplicador de Revestimento Cerâmico",carga:160},
+  {codigo:"NCAP0801",nome:"APPCC - Análise de Perigos e Pontos Críticos de Controle",carga:24},
+  {codigo:"NCAP0754",nome:"Arduino Aplicado à IoT (Internet of Things)",carga:40},
+  {codigo:"NCQP0338",nome:"Armador de Ferragem",carga:160,pot:"EMPRESA"},
+  {codigo:"NIP0678",nome:"Armação de Ferragens",carga:60,pot:"COMUNIDADE OU EMPRESA"},
+  {codigo:"NCQP0143",nome:"Assistente Administrativo",carga:160},
+  {codigo:"NCQP0119",nome:"Assistente Administrativo",carga:180},
+  {codigo:"ECQP0013",nome:"Assistente de Contabilidade",carga:160,pot:"100% EAD"},
+  {codigo:"ECQP0015",nome:"Assistente de Controle de Qualidade",carga:180,pot:"100% EAD"},
+  {codigo:"NCQP0144",nome:"Assistente de Operações Logísticas",carga:160},
+  {codigo:"NCQP0106",nome:"Assistente de Planejamento e Controle da Produção",carga:160,pot:"EMPRESA"},
+  {codigo:"NCQP0214",nome:"Assistente de Produção",carga:160},
+  {codigo:"NCAP0427",nome:"Autocad 2D Aplicado à Construção Civil",carga:40},
+  {codigo:"NCAP0455",nome:"Automação de Sistemas Eletropneumáticos",carga:80},
+  {codigo:"NCAP1505",nome:"Automação Inteligente de Processos Administrativos e Operacionais",carga:32},
+  {codigo:"NCQP0205",nome:"Auxiliar de Fabricação de Pizzas e Massas",carga:160,pot:"EMPRESA"},
+  {codigo:"NCQP0194",nome:"Auxiliar de Laboratório de Microbiologia",carga:162},
+  {codigo:"NCQP0204",nome:"Auxiliar de Padaria e Confeitaria",carga:180,pot:"EMPRESA"},
+  {codigo:"NCAP0897",nome:"AWS Academy Cloud Foundations",carga:40},
+  {codigo:"NIP0764",nome:"Boas Práticas de Fabricação - BPF",carga:16},
+  {codigo:"NCQP0111",nome:"Bombeiro Civil",carga:240},
+  {codigo:"NCAP0437",nome:"Básico de Combate a Incêndio – NR 23",carga:8,pot:"EMPRESA"},
+  {codigo:"NIP0063",nome:"Cabeamento Estruturado",carga:40,pot:"EMPRESA"},
+  {codigo:"NIP0660",nome:"Carpintaria de Obras",carga:80,pot:"COMUNIDADE/EMPRESA"},
+  {codigo:"NCQP0212",nome:"Carpinteiro de Obras",carga:160,pot:"EMPRESA"},
+  {codigo:"NIP0495",nome:"Cervejaria artesanal (Homebrewer)",carga:40},
+  {codigo:"NCAP1113",nome:"Cisco CCNA v7.1 - Introdução às Redes",carga:72},
+  {codigo:"NCAP1115",nome:"Cisco CCNA v7.2 – Comutação, Roteador e Wireless Essencial",carga:72},
+  {codigo:"NCAP1116",nome:"Cisco CCNA v7.3 – Redes Corporativas, Segurança e Automação",carga:72},
+  {codigo:"NCAP1008",nome:"Cloud Essentials",carga:28,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NCAP0456",nome:"Comandos Elétricos",carga:80},
+  {codigo:"NCQP0553",nome:"Confeccionador de Moda Intima e Moda Praia",carga:160,pot:"EMPRESA"},
+  {codigo:"NCAP0823",nome:"Confeitaria Avançada",carga:40},
+  {codigo:"NIP0765",nome:"Confeitaria Básica",carga:48},
+  {codigo:"CPI305",nome:"Confeitaria Básica",carga:48,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"ECQP0012",nome:"Controlador e Programador da Produção",carga:160,pot:"100% EAD"},
+  {codigo:"NCAP0457",nome:"Controlador Lógico Programável Avançado - CLP",carga:40},
+  {codigo:"NCAP0459",nome:"Controlador Lógico Programável Básico - CLP",carga:40},
+  {codigo:"NCAP0844",nome:"Costura Industrial em Máquina Overlock",carga:60},
+  {codigo:"NCQP0287",nome:"Costureiro de Máquina Reta",carga:160,pot:"EMPRESA"},
+  {codigo:"NCQP0333",nome:"Costureiro Industrial de máquina Reta e Overlock",carga:160},
+  {codigo:"NCQP0477",nome:"Costureiro sob Medida",carga:160},
+  {codigo:"NCAP1508",nome:"Criação de Assistentes de Inteligência Artificial para Gestores e Supervisores Industriais",carga:32},
+  {codigo:"NCAP0467",nome:"Custos Logísticos",carga:24},
+  {codigo:"NCAP1007",nome:"Cyber Security Essentials",carga:32,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NCAP1009",nome:"Data Center",carga:100,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NCAP1011",nome:"Data Center, Cloud e Segurança da Informação",carga:160,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NCAP0988",nome:"Decoração de Tortas",carga:16},
+  {codigo:"NCAP1035",nome:"Descontaminação e Proteção de Pintura",carga:20},
+  {codigo:"ECQP0017",nome:"Desenhista Mecânico",carga:200,pot:"100% EAD"},
+  {codigo:"ECQP0014",nome:"Desenhista Técnico de Edificações",carga:160,pot:"100% EAD"},
+  {codigo:"NCAP0432",nome:"Desenho Mecânico com CAD - Básico",carga:80},
+  {codigo:"ECAP0008",nome:"Design Gráfico",carga:100,pot:"100% EAD"},
+  {codigo:"NCAP0493",nome:"Direção Defensiva",carga:8,pot:"EMPRESA"},
+  {codigo:"NCAP0493",nome:"Direção Defensiva",carga:16,pot:"EMPRESA"},
+  {codigo:"NIP0574",nome:"Edição de imagem e Arte Vetorial",carga:60,pot:"COMUNIDADE / HIBRIDO"},
+  {codigo:"NIP0579",nome:"Edição de Vídeo",carga:90,pot:"COMUNIDADE / HIBRIDO"},
+  {codigo:"NCAP0431",nome:"Elementos Finais de Controle",carga:32},
+  {codigo:"NCQP0174",nome:"Eletricista de Automóveis",carga:160},
+  {codigo:"NCQP0223",nome:"Eletricista de Redes de Distribuição de Energia Elétrica",carga:240},
+  {codigo:"NCQP0302",nome:"Eletricista de Redes Energizadas – Linha Viva - Formação",carga:320},
+  {codigo:"NCQP0513",nome:"Eletricista Industrial",carga:200},
+  {codigo:"NCQP0012",nome:"Eletricista Instalador Predial de Baixa Tensão",carga:160},
+  {codigo:"NCAP1306",nome:"Eletromobilidade",carga:16},
+  {codigo:"NCAP0794",nome:"Eletrônica Embarcada Veicular",carga:120},
+  {codigo:"NCAP1121",nome:"Emergência e Salvamento em Espaço Confinado - NR 33",carga:24,pot:"EMPRESA"},
+  {codigo:"NIP0131",nome:"Empreendedorismo: Como Montar seu Próprio Negócio",carga:40,pot:"EMPRESA"},
+  {codigo:"NCAP1442",nome:"Especialização Técnica em Biotecnologia Vegetal",carga:345},
+  {codigo:"NCAP1123",nome:"Especialização Técnica em Cibersegurança",carga:300},
+  {codigo:"NCAP1002",nome:"Especialização Técnica em Construção de Modelos Digitais",carga:300},
+  {codigo:"NCAP1124",nome:"Especialização Técnica em Desenvolvimento de Aplicações para Inteligência Artificial",carga:345},
+  {codigo:"NCAP1192",nome:"Especialização Técnica em Equipamentos Biomédicos",carga:300},
+  {codigo:"NCAP1001",nome:"Especialização Técnica em Gestão Integrada de QSMS e Responsabilidade Social",carga:300},
+  {codigo:"NCAP0907",nome:"Especialização Técnica em Indústria Avançada",carga:345},
+  {codigo:"NCAP1090",nome:"Especialização Técnica em Manutenção de Equipamentos Biomédicos",carga:300},
+  {codigo:"NCAP1441",nome:"Especialização Técnica em Manutenção de Veículos Elétricos e Híbridos",carga:300},
+  {codigo:"NCAP1000",nome:"Especialização Técnica em Planejamento de Manutenção Industrial",carga:300},
+  {codigo:"NCAP1194",nome:"Especialização Técnica em Processos de Fabricação Mecânica",carga:300},
+  {codigo:"NCAP1194",nome:"Especialização Técnica em Processos de Fabricação Mecânica",carga:360},
+  {codigo:"NCAP1003",nome:"Especialização Técnica em Projetos Industriais",carga:300},
+  {codigo:"NCAP1197",nome:"Especialização Técnica em Projetos Mecânicos",carga:300},
+  {codigo:"NCAP1197",nome:"Especialização Técnica em Projetos Mecânicos",carga:360},
+  {codigo:"NCAP0904",nome:"Especialização Técnica em Robótica Industrial",carga:310},
+  {codigo:"NCAP0903",nome:"Especialização Técnica em Sistemas Fotovoltaicos",carga:300},
+  {codigo:"NCAP1440",nome:"Especialização Técnica em Tecnologia e Inovação em Cosméticos",carga:300},
+  {codigo:"NCAP0483",nome:"Excel Avançado",carga:40},
+  {codigo:"NIP0133",nome:"Excel Básico",carga:20},
+  {codigo:"NCAP0906",nome:"Excel Intermediário",carga:20,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NIP0546",nome:"Fabricação de Aromatizadores de Ambientes",carga:16},
+  {codigo:"NIP0553",nome:"Fabricação de Ovos de Páscoa",carga:16},
+  {codigo:"NIP0508",nome:"Fabricação de Pizzas",carga:40,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NIP0548",nome:"Fibra Óptica Ftth",carga:20},
+  {codigo:"NIP0458",nome:"Fibras Ópticas",carga:40},
+  {codigo:"NCAP0468",nome:"Formação de Auditor Interno da Qualidade (ISO 9001:2015)",carga:24},
+  {codigo:"NCAP0726",nome:"Formação de Auditor Interno IATF 16949:2016",carga:24},
+  {codigo:"NCAP1309",nome:"Formação de Brigada de Incêndio – Básico (NBR 14276)",carga:16},
+  {codigo:"NCAP0688",nome:"Formação de Brigadista – NR 23 – Avançado I",carga:34,pot:"EMPRESA"},
+  {codigo:"NCAP0689",nome:"Formação de Brigadista – NR 23 – Avançado II",carga:63,pot:"EMPRESA"},
+  {codigo:"NCAP0701",nome:"Formação de Brigadista – NR 23 – Avançado III",carga:72,pot:"EMPRESA"},
+  {codigo:"NCAP0687",nome:"Formação de Brigadista – NR 23 – Intermediário II",carga:52,pot:"EMPRESA"},
+  {codigo:"NCAP0697",nome:"Formação de Brigadista – NR 23 – Reciclagem",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP0731",nome:"Formação de Brigadista – Nível I - Avançado - IT 17/2016",carga:30},
+  {codigo:"NCAP1429",nome:"Formação de Brigadista – Nível I – Básico - IT 17/2016",carga:8},
+  {codigo:"NCAP0985",nome:"Formação de Brigadista – Nível Intermediário IT 17/2016",carga:20},
+  {codigo:"NCAP0553",nome:"Formação de Yellow Belt",carga:40},
+  {codigo:"NIP0757",nome:"Formação Inicial para Pedreiros",carga:80},
+  {codigo:"NCAP0785",nome:"Formação Líder de Brigada",carga:4,pot:"EMPRESA"},
+  {codigo:"NIP0545",nome:"Formulação de álcool gel e outros antissépticos",carga:16},
+  {codigo:"NCAP0992",nome:"Fotografia e Edição de Imagem para Dispositivos Móveis",carga:20},
+  {codigo:"NIP0577",nome:"Fotografia Profissional para iniciantes",carga:16,pot:"COMUNIDADE / HIBRIDO"},
+  {codigo:"NIP0755",nome:"Fundamentos da Costura Sob Medida",carga:120},
+  {codigo:"NCAP0420",nome:"Fundamentos de Mikrotik",carga:80},
+  {codigo:"ECAP0001",nome:"Fundamentos dos Processos Logísticos",carga:120,pot:"COMUNIDADE / EAD - SEMIPRESENCIAL"},
+  {codigo:"ECAP0002",nome:"Fundamentos Eletroeletrônicos Automotivos",carga:120,pot:"COMUNIDADE / EAD - SEMIPRESENCIAL"},
+  {codigo:"ECAP0003",nome:"Fundamentos Mecânicos Automotivos",carga:120,pot:"COMUNIDADE / EAD - SEMIPRESENCIAL"},
+  {codigo:"NIP0536",nome:"Gemologia Básica",carga:40},
+  {codigo:"NCAP0965",nome:"Gerenciamento de Energia em Instalações Elétricas",carga:80},
+  {codigo:"NCAP0469",nome:"Gerenciamento de Projetos",carga:20},
+  {codigo:"NCAP0793",nome:"Gerenciamento Eletrônico de Motor Diesel",carga:80},
+  {codigo:"NCAP0905",nome:"Gestão de Projetos com Práticas Ágeis",carga:60,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NIP0540",nome:"Gestão e Linha de Montagem para Joalheria",carga:40},
+  {codigo:"NCAP0470",nome:"Green Belt",carga:80},
+  {codigo:"NCAP0542",nome:"Hidráulica e Pneumática",carga:40},
+  {codigo:"NCAP1034",nome:"Higienização Interna de Veículos",carga:20},
+  {codigo:"ECAP0030",nome:"Implementação de Software de Gerenciamento em Cibersistemas",carga:80,pot:"COMUNIDADE / EAD - SEMIPRESENCIAL"},
+  {codigo:"NIP0021",nome:"Informática Básica",carga:48},
+  {codigo:"ECQP0018",nome:"Inspetor de Qualidade",carga:160,pot:"100% EAD"},
+  {codigo:"NCQP0495",nome:"Instalador de Sistemas Fotovoltaicos",carga:160},
+  {codigo:"NCQP0091",nome:"Instalador e Reparador de Linhas e Comunicação de Dados",carga:240,pot:"EMPRESA"},
+  {codigo:"NCQP0099",nome:"Instalador e Reparador de Suporte Técnico em TI",carga:240,pot:"EMPRESA"},
+  {codigo:"NIP0686",nome:"Instalação de Drywall",carga:40},
+  {codigo:"NIP0800",nome:"Instalação de Piso Vinílico",carga:32},
+  {codigo:"ECAP0031",nome:"Instalação de Sensores e Dispositivos de Automação para IoT",carga:80,pot:"COMUNIDADE / EAD - SEMIPRESENCIAL"},
+  {codigo:"NCAP0826",nome:"Instalação e Manutenção de Condicionadores Ar Split System",carga:60},
+  {codigo:"NCAP1219",nome:"Instalação em Drywall Avançado",carga:50},
+  {codigo:"NIP0670",nome:"Instalação em Light Steel Frame – Básico",carga:40},
+  {codigo:"NIP0687",nome:"Instalação Hidráulica Predial",carga:100},
+  {codigo:"NCAP1019",nome:"Instalação, Operação e Manutenção em Carregadores de Veículos Elétricos",carga:60},
+  {codigo:"NCAP1019",nome:"Instalação, Operação e Manutenção em Carregadores de Veículos Elétricos",carga:88,pot:"COMUNIDADE OU EMPRESA"},
+  {codigo:"NIP0692",nome:"Instalações Elétricas Prediais",carga:80},
+  {codigo:"NIP0042",nome:"Instrumentação Geral para Controle de Processos",carga:40},
+  {codigo:"NCAP1504",nome:"Inteligência Artificial Aplicada à Produtividade Administrativa e Industrial",carga:32},
+  {codigo:"NCAP0471",nome:"Interpretação da Norma ISO 9001 2015",carga:16},
+  {codigo:"NIP0444",nome:"Introdução ao Processo de Fabricação de Cervejas Artesanais",carga:20},
+  {codigo:"NCAP0631",nome:"Introdução à Gestão de Riscos",carga:8},
+  {codigo:"NCAP0464",nome:"Inversores de Frequência",carga:40},
+  {codigo:"NCAP0486",nome:"Joalheria Avançada",carga:80},
+  {codigo:"NIP0119",nome:"Joalheria Básica",carga:80},
+  {codigo:"NCAP1471",nome:"Laminação de Fibra de Vidro e Resina",carga:20},
+  {codigo:"NIP0539",nome:"Lapidação Semi Mecânica Avançada",carga:80},
+  {codigo:"NIP0535",nome:"Lapidação semi mecânica básica",carga:80},
+  {codigo:"NCAP0986",nome:"Lapidação Semi Mecânica Intermediária",carga:80},
+  {codigo:"NCAP1036",nome:"Lavagem Técnica de Veículos",carga:20},
+  {codigo:"NCAP0918",nome:"Lean Manufacturing",carga:20,pot:"EMPRESA"},
+  {codigo:"NCAP1345",nome:"Leitura e Interpretação de Projetos",carga:20,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NCAP1507",nome:"Liderança em Canteiro de Obras",carga:30},
+  {codigo:"NCAP0484",nome:"Linux: Administração e Serviços de Rede",carga:70},
+  {codigo:"ECAP0009",nome:"Logística de Distribuição",carga:100,pot:"100% EAD"},
+  {codigo:"ECAP0012",nome:"Logística de Suprimentos",carga:100,pot:"100% EAD"},
+  {codigo:"NCAP0787",nome:"Lubrificação Industrial",carga:20},
+  {codigo:"NCAP0575",nome:"Manutenção de Bombas Industriais",carga:40},
+  {codigo:"NCAP0795",nome:"Manutenção de Empilhadeira a Combustão",carga:120},
+  {codigo:"NIP0446",nome:"Manutenção de Microcomputador",carga:60},
+  {codigo:"NCAP0797",nome:"Manutenção de Sistemas de Transmissão Automática de Veículos Leves",carga:80},
+  {codigo:"NCAP0967",nome:"Manutenção e Operação em Subestação",carga:60},
+  {codigo:"NCAP0543",nome:"Manutenção Elétrica de Cervejaria",carga:180,pot:"EMPRESA"},
+  {codigo:"NCAP0600",nome:"MASP – Método de Análises e Solução de Problemas",carga:16},
+  {codigo:"NIP0504",nome:"Mecânica para Mulheres",carga:20},
+  {codigo:"NCQP0041",nome:"Mecânico de Automóveis Leves",carga:416},
+  {codigo:"NCQP0427",nome:"Mecânico de Manutenção de Máquinas Industriais",carga:200},
+  {codigo:"NCQP0122",nome:"Mecânico de Manutenção em Motocicletas",carga:160},
+  {codigo:"NCQP0239",nome:"Mecânico de Motor Diesel",carga:160},
+  {codigo:"NCQP0145",nome:"Mecânico de Refrigeração e Climatização",carga:440},
+  {codigo:"NCQP0199",nome:"Mecânico de Refrigeração e Climatização Residencial",carga:200,pot:"EMPRESA"},
+  {codigo:"NCQP0286",nome:"Mecânico de Suspensão, Direção e Freios – Veículos Leves",carga:160},
+  {codigo:"NCQP0262",nome:"Mecânico de Transmissão Manual Automatizada de Veículos Leves",carga:176},
+  {codigo:"NCAP1344",nome:"Meio Ambiente e Qualidade",carga:20,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NCQP0028",nome:"Mestre de Obras",carga:260,pot:"EMPRESA"},
+  {codigo:"NCAP0497",nome:"Metodologia 5S",carga:8,pot:"EMPRESA"},
+  {codigo:"NIP0575",nome:"Modelagem 3D",carga:80,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NCAP0949",nome:"Modelagem Computacional Aplicada à Construção Civil",carga:40},
+  {codigo:"NCQP0266",nome:"Modelista de Roupas",carga:160},
+  {codigo:"NCQP0029",nome:"Montador de Andaimes",carga:160,pot:"EMPRESA"},
+  {codigo:"NCQP0489",nome:"Montador e Reparador de Computador",carga:160,pot:"EMPRESA"},
+  {codigo:"NCAP1485",nome:"Montagem de Estruturas Metálicas",carga:30},
+  {codigo:"NIP0578",nome:"Motion Design com After Effects",carga:80,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NCAP0507",nome:"Motivação e Liderança",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP1349",nome:"Normas e Procedimentos Técnicos na Execução de Esquadrias",carga:40,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NIP0029",nome:"Noções Básicas de Instalações Elétricas Prediais",carga:20},
+  {codigo:"NCAP0476",nome:"Noções de BPF para Indústria de Saneantes e Cosméticos",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP0373",nome:"Noções de Resgate em Cesto Aéreo",carga:8,pot:"EMPRESA"},
+  {codigo:"NIP0038",nome:"Noções para Fabricação de Salgados",carga:20},
+  {codigo:"NIP0039",nome:"Noções para Fabricação de Sobremesas",carga:20},
+  {codigo:"NCAP0703",nome:"NR 12 Segurança na Operação de Máquinas",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP0725",nome:"Observador de Trabalho a Quente – NR 34",carga:8,pot:"EMPRESA"},
+  {codigo:"NCQP0275",nome:"Operador de Calçados I",carga:220,pot:"EMPRESA"},
+  {codigo:"ECQP0016",nome:"Operador de Computador",carga:160,pot:"100% EAD"},
+  {codigo:"NCQP0189",nome:"Operador de Injetora e Extrusora de Plásticos",carga:160},
+  {codigo:"NCQP0006",nome:"Operador de Microcomputador e Informática",carga:240,pot:"EMPRESA"},
+  {codigo:"NCQP0217",nome:"Operador de Máquina de Costura Industrial",carga:160,pot:"EMPRESA"},
+  {codigo:"NCQP0172",nome:"Operador de Processo Químico e Petroquímico Industrial",carga:300},
+  {codigo:"ECQP0006",nome:"Operador de Telemarketing",carga:160,pot:"100% EAD"},
+  {codigo:"NIP0096",nome:"Operação de Caminhão Guindauto",carga:40},
+  {codigo:"XIPOCA",nome:"Operação de Cesto Aéreo",carga:24,pot:"EMPRESA"},
+  {codigo:"NIP0098",nome:"Operação de Empilhadeira Elétrica",carga:32},
+  {codigo:"NIP0097",nome:"Operação de Empilhadeira à Combustão",carga:40},
+  {codigo:"NIP0624",nome:"Operação de Minicarregadeira",carga:40,pot:"EMPRESA"},
+  {codigo:"NIP0127",nome:"Operação de Máquinas Beneficiadoras de Algodão",carga:80,pot:"EMPRESA"},
+  {codigo:"NIP0713",nome:"Operação de Paleteira Elétrica",carga:16,pot:"EMPRESA"},
+  {codigo:"XIPOPR",nome:"Operação de Ponte Rolante",carga:20},
+  {codigo:"NIP0465",nome:"Operação de Pá Carregadeira",carga:40},
+  {codigo:"NIP0473",nome:"Operação de Retroescavadeira",carga:64},
+  {codigo:"NIP0108",nome:"Operação de Talha Elétrica",carga:16,pot:"EMPRESA"},
+  {codigo:"NIP0069",nome:"Operação de Telemarketing",carga:40},
+  {codigo:"NIP0541",nome:"Operação de Transpaleteira Elétrica",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP1472",nome:"Operação e Controle de Processos de Biocombustíveis",carga:160},
+  {codigo:"NCAP1068",nome:"Operação e Manutenção em Geradores Elétricos",carga:60},
+  {codigo:"NIP0641",nome:"Operação em Processo de Tratamento de Água e Esgoto",carga:80,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NCAP1486",nome:"Operação Pré-Fabricados",carga:30},
+  {codigo:"NCAP1348",nome:"Orçamento para Execução de Esquadrias",carga:40,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NCAP0805",nome:"Panificação Avançada",carga:48},
+  {codigo:"PPI305",nome:"Panificação Básica",carga:48},
+  {codigo:"NCAP0964",nome:"PCM – Planejamento e controle da Manutenção",carga:20,pot:"EMPRESA"},
+  {codigo:"NCQP0005",nome:"Pedreiro Polivalente",carga:160},
+  {codigo:"NCQP0130",nome:"Pintor de Obras",carga:160},
+  {codigo:"NCQP0033",nome:"Pintor Industrial",carga:180},
+  {codigo:"NIP0680",nome:"Pintura de Obras",carga:60},
+  {codigo:"NCAP0621",nome:"Poda de Árvores em Linha Viva",carga:40,pot:"EMPRESA"},
+  {codigo:"NCAP1033",nome:"Polimento Técnico Automotivo",carga:40},
+  {codigo:"NIP0788",nome:"Power BI - Análise e Visualização de Dados",carga:40,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NCQP0227",nome:"Preparador de Pães Especiais",carga:160,pot:"EMPRESA"},
+  {codigo:"NCAP1021",nome:"Princípios de Segurança de Processos Químicos e Petroquímicos",carga:24,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"ALIMPSP305",nome:"Processamento de Sorvetes e Picolés",carga:32},
+  {codigo:"ECAP0011",nome:"Processos Logísticos",carga:100,pot:"100% EAD"},
+  {codigo:"NIP0564",nome:"Produtos Juninos",carga:16},
+  {codigo:"NIP0008",nome:"Produtos Natalinos",carga:16},
+  {codigo:"NIP0507",nome:"Produção de Doces e Conservas",carga:40,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NIP0129",nome:"Produção de Doces Finos",carga:40},
+  {codigo:"NIP0558",nome:"Produção de Hambúrguer Artesanal",carga:16},
+  {codigo:"NIP0563",nome:"Produção de Licor",carga:20},
+  {codigo:"ALIMPSF305",nome:"Produção de Salgados e Folhados",carga:48},
+  {codigo:"NIP0040",nome:"Produção de Sequilhos e Petit four",carga:28},
+  {codigo:"NIP0547",nome:"Produção de Velas Aromáticas",carga:16},
+  {codigo:"NCAP0721",nome:"Programa de Transformação Lean",carga:75,pot:"EMPRESA"},
+  {codigo:"NCQP0413",nome:"Programador de Sistemas Automatizados",carga:160},
+  {codigo:"NCQP0162",nome:"Programador para Dispositivos Móveis",carga:240},
+  {codigo:"NCQP0100",nome:"Programador Web",carga:240},
+  {codigo:"ECAP0013",nome:"Programação da Produção",carga:100,pot:"100% EAD"},
+  {codigo:"NCAP0485",nome:"Programação de Torno CNC",carga:80},
+  {codigo:"NCAP0776",nome:"Programação Móvel para IoT (Internet of Things) - Avançado",carga:100},
+  {codigo:"NIP0451",nome:"Programação Móvel para IoT (Internet of Things) - Básico",carga:40},
+  {codigo:"NCAP0799",nome:"Programação PHP com Banco de Dados My SQL",carga:80},
+  {codigo:"NCAP1350",nome:"Projetos de Instalações Elétricas Prediais",carga:80,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NCAP1066",nome:"Projetos de Sistemas Fotovoltaicos",carga:60},
+  {codigo:"NCAP0444",nome:"Proteção Respiratória",carga:8,pot:"EMPRESA"},
+  {codigo:"NIP0014",nome:"Práticas de Engenharia de Petróleo",carga:96},
+  {codigo:"NCAP0423",nome:"Pães Especiais Massa salgada",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP0422",nome:"Pães Especiais: Massa doce",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP0766",nome:"Reciclagem de Brigadista – Nível Básico",carga:8,pot:"EMPRESA"},
+  {codigo:"NCAP0841",nome:"Reciclagem de Brigadista – Nível I",carga:8,pot:"EMPRESA"},
+  {codigo:"NCAP0841",nome:"Reciclagem de Brigadista – Nível I",carga:20,pot:"EMPRESA"},
+  {codigo:"NCAP0848",nome:"Reciclagem de Brigadista – Nível II",carga:10,pot:"EMPRESA"},
+  {codigo:"NCAP0698",nome:"Reciclagem em NR 35 para Redes Elétricas",carga:8},
+  {codigo:"ECAP0014",nome:"Recursos Humanos",carga:100,pot:"100% EAD"},
+  {codigo:"NCAP0854",nome:"Rede Ethernet Industrial",carga:24},
+  {codigo:"NCAP0454",nome:"Revit MEP – Hidráulica Predial",carga:20},
+  {codigo:"NIP0781",nome:"Rigger Auxiliar de Movimentação de Cargas (Sinaleiro/Amarrador)",carga:20,pot:"EMPRESA"},
+  {codigo:"NCAP0465",nome:"Robótica Industrial",carga:40},
+  {codigo:"ECAP0010",nome:"Rotinas Administrativas",carga:100,pot:"100% EAD"},
+  {codigo:"NCAP1381",nome:"Segurança com Inflamáveis e Combustíveis - NR 20 – Intermediário – Classe III",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP1210",nome:"Segurança com Inflamáveis e Combustíveis - NR 20 – Reciclagem - Intermediário",carga:4,pot:"EMPRESA"},
+  {codigo:"NCAP1241",nome:"Segurança com Inflamáveis e Combustíveis – NR 20 – Específico – Classe III",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP1240",nome:"Segurança e Saúde no Trabalho com Inflamáveis e Combustíveis –NR 20 – Avançado I",carga:20,pot:"EMPRESA"},
+  {codigo:"NCAP1242",nome:"Segurança e Saúde no Trabalho com Inflamáveis e Combustíveis–NR 20 – Avançado II",carga:32,pot:"EMPRESA"},
+  {codigo:"NCAP0675",nome:"Segurança em Eletricidade – NR 10 – Básico",carga:40},
+  {codigo:"NCAP0677",nome:"Segurança em Eletricidade – NR 10 – Reciclagem Básico",carga:16},
+  {codigo:"NCAP0678",nome:"Segurança em Eletricidade – NR 10 – Reciclagem SEP",carga:16},
+  {codigo:"NCAP0678",nome:"Segurança em Eletricidade – NR 10 – Reciclagem SEP",carga:20,pot:"EMPRESA"},
+  {codigo:"NCAP0676",nome:"Segurança em Eletricidade – NR 10 – SEP",carga:40},
+  {codigo:"NCAP1225",nome:"Segurança em Espaços Confinados – NR 33 - Trabalhadores e Vigias",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP0981",nome:"Segurança em Espaços Confinados – NR 33 - Trabalhadores e Vigias – Reciclagem",carga:8,pot:"EMPRESA"},
+  {codigo:"NCAP1109",nome:"Segurança em Espaços Confinados – NR 33 – Supervisor de Entrada",carga:40,pot:"EMPRESA"},
+  {codigo:"NCAP1226",nome:"Segurança em Espaços Confinados – NR 33 – Supervisor de Entrada – Reciclagem",carga:8,pot:"EMPRESA"},
+  {codigo:"NCAP0898",nome:"Segurança em Inflamáveis e Combustíveis – NR 20 Básico - Classe I",carga:4,pot:"EMPRESA"},
+  {codigo:"NCAP0680",nome:"Segurança em Inflamáveis e Combustíveis – NR 20 – Básico",carga:8,pot:"EMPRESA"},
+  {codigo:"NCAP0866",nome:"Segurança em Inflamáveis e Combustíveis – NR 20 – Reciclagem Básico",carga:4,pot:"EMPRESA"},
+  {codigo:"NCAP0858",nome:"Segurança em Máquinas e Equipamentos NR 12 – Geral Injetora",carga:8,pot:"EMPRESA"},
+  {codigo:"NCAP0711",nome:"Segurança em Máquinas e Equipamentos – NR 12",carga:12,pot:"EMPRESA"},
+  {codigo:"NCAP0679",nome:"Segurança em Máquinas e Equipamentos – NR 12 – Geral",carga:8,pot:"EMPRESA"},
+  {codigo:"NCAP1307",nome:"Segurança Na Manutenção De Sistemas Convencionais De Veículos Eletrificados – Nível 1",carga:20},
+  {codigo:"NCAP0445",nome:"Segurança na Operação de Caldeira - NR13 - Reciclagem",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP0445",nome:"Segurança na Operação de Caldeira - NR13 - Reciclagem",carga:24,pot:"EMPRESA"},
+  {codigo:"NCAP0714",nome:"Segurança na Operação de Caldeiras - NR 13",carga:40,pot:"EMPRESA"},
+  {codigo:"NCAP0762",nome:"Segurança na Operação de Empilhadeira de Pequeno Porte-NR 11",carga:20,pot:"EMPRESA"},
+  {codigo:"NIP0027",nome:"Segurança na Operação de Motosserra",carga:24,pot:"EMPRESA"},
+  {codigo:"NCAP0847",nome:"Segurança na Operação de Motosserra e Motopoda - NR12",carga:8,pot:"EMPRESA"},
+  {codigo:"NCAP0523",nome:"Segurança no Manuseio de Produtos Químicos",carga:8,pot:"EMPRESA"},
+  {codigo:"NCAP0724",nome:"Segurança para Trabalhos a Quente - NR 34",carga:8,pot:"EMPRESA"},
+  {codigo:"NCAP0715",nome:"Segurança para Unidades de Processos e Vasos de Pressão - NR 13",carga:40,pot:"EMPRESA"},
+  {codigo:"NCAP0715",nome:"Segurança para Unidades de Processos e Vasos de Pressão NR - 13",carga:52,pot:"EMPRESA"},
+  {codigo:"NCAP0715",nome:"Segurança para Unidades de Processos e Vasos de Pressão NR - 13",carga:64,pot:"EMPRESA"},
+  {codigo:"NCAP0852",nome:"Segurança para Unidades de Processos e Vasos de Pressão NR - 13 - Reciclagem",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP0852",nome:"Segurança para Unidades de Processos e Vasos de Pressão NR - 13 - Reciclagem",carga:20,pot:"EMPRESA"},
+  {codigo:"NCAP0702",nome:"Segurança Trabalho em Altura para Redes Elétricas – NR 35",carga:16},
+  {codigo:"NCAP0702",nome:"Segurança Trabalho em Altura para Redes Elétricas – NR 35",carga:24,pot:"EMPRESA"},
+  {codigo:"NCAP0696",nome:"Segurança Trabalho em Altura para Sonda de Petróleo – NR 35",carga:16},
+  {codigo:"NCAP0834",nome:"Selos Mecânicos",carga:24},
+  {codigo:"NCQP0126",nome:"Serralheiro de Aço",carga:160,pot:"EMPRESA"},
+  {codigo:"NCAP0452",nome:"Sistema de Motores Ciclo Otto",carga:40},
+  {codigo:"NCAP0501",nome:"SketchUp – Maquetes Virtuais de Edifícios",carga:24},
+  {codigo:"NCQP0138",nome:"Soldador por Eletrodo Revestido de Estruturas e Tubulações",carga:160},
+  {codigo:"NCQP0330",nome:"Soldador TIG de Estruturas e Tubulações",carga:160},
+  {codigo:"NCAP0480",nome:"Soldagem MIG/MAG de Estruturas Metálicas",carga:100},
+  {codigo:"NCAP0562",nome:"Soluções de Gerenciamento Agrícola (A.M.S.)",carga:24,pot:"EMPRESA"},
+  {codigo:"NCAP0706",nome:"Supervisor para Trabalho em Altura - NR 35",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP0588",nome:"Supervisão e Liderança de Equipes",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP0588",nome:"Supervisão e Liderança de Equipes",carga:20,pot:"COMUNIDADE/ 100% REMOTO"},
+  {codigo:"NIP0475",nome:"Suporte Técnico em Sistema de CFTV",carga:20},
+  {codigo:"NCAP1258",nome:"Tecnologia de Soldagem MIG/MAG",carga:48},
+  {codigo:"NCAP0745",nome:"Termografia Aplicada ao Diagnóstico de Falhas",carga:24},
+  {codigo:"NCQP0147",nome:"Torneiro Mecânico",carga:240},
+  {codigo:"NCAP0659",nome:"TPM - Manutenção Produtiva Total",carga:40},
+  {codigo:"NCAP0788",nome:"Traçado de Caldeiraria",carga:80},
+  {codigo:"NCAP0708",nome:"Treinamento de Noções de Resgate em Altura - NR 35",carga:8,pot:"EMPRESA"},
+  {codigo:"NCAP0798",nome:"Treinamento de Saúde e Segurança no Abate e Processamento de Carnes e Derivados",carga:16,pot:"EMPRESA"},
+  {codigo:"NCAP0694",nome:"Treinamento Trabalho Altura – NR 35 – Reciclagem",carga:8},
+  {codigo:"NCAP0693",nome:"Treinamento Trabalho em Altura - NR 35",carga:8},
+  {codigo:"NCAP0693",nome:"Treinamento Trabalho em Altura - NR 35",carga:16},
+  {codigo:"NCAP0441",nome:"Técnicas de Análise de Vibração",carga:60},
+  {codigo:"NCAP0947",nome:"Técnicas de Montagem de Rolamentos",carga:20},
+  {codigo:"NCAP0633",nome:"Técnicas de Tratamento de não Conformidades",carga:8,pot:"EMPRESA"},
+  {codigo:"NIP0077",nome:"Técnicas para Impermeabilização de Estruturas",carga:40},
+  {codigo:"NCAP1397",nome:"VideoMaker",carga:40,pot:"COMUNIDADE / HIBRIDO"},
+  {codigo:"NCQP0476",nome:"Web Designer",carga:160}
+];
+/* ================= FIM DO BLOCO DE CATÁLOGO ================= */
+
+/* =====================================================================
+   BLOCO 2 — NÚCLEO (funções puras, sem acesso ao DOM) — testado em Node
+   ===================================================================== */
+/* ==== NUCLEO:INICIO ==== */
+const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+const DIAS_LONGO = ["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
+const DIAS_CURTO = ["DOM","SEG","TER","QUA","QUI","SEX","SÁB"];
+const DIAS_ABREV = ["dom","seg","ter","qua","qui","sex","sáb"];
+const LIMITE_ITER = 20000; // ~55 anos: proteção contra laço infinito
+
+function pad(n){ return String(n).padStart(2,"0"); }
+/* Data local → "AAAA-MM-DD" (sem toISOString, evitando erro de fuso) */
+function fmtISO(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+/* "AAAA-MM-DD" → Date local; devolve null se inválida (ex.: 2027-02-30) */
+function parseISO(s){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||""));
+  if(!m) return null;
+  const a=+m[1], me=+m[2], di=+m[3];
+  if(a<1900||a>2200) return null;
+  const d = new Date(a, me-1, di);
+  return (d.getFullYear()===a && d.getMonth()===me-1 && d.getDate()===di) ? d : null;
+}
+function fmtBR(d){ return pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear(); }
+function fmtLongo(d){ return DIAS_LONGO[d.getDay()]+", "+pad(d.getDate())+" de "+MESES[d.getMonth()]+" de "+d.getFullYear(); }
+function fmtHoras(h){ return (Number.isInteger(h)? String(h) : String(h).replace(".",","))+" h"; }
+function proximoDia(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()+1); }
+function ehMeiaHora(n){ return Math.abs(n*2-Math.round(n*2))<1e-9; }
+
+/* ---------- Feriados pré-carregados (Ilhéus/BA, 2026 e 2027) ---------- */
+// tipo: nacional | estadual | municipal | facultativo | recesso | regional
+const FERIADOS_BASE = [
+  // 2026 — nacionais
+  ["2026-01-01","Confraternização Universal","nacional"],["2026-04-03","Paixão de Cristo","nacional"],
+  ["2026-04-21","Tiradentes","nacional"],["2026-05-01","Dia do Trabalho","nacional"],
+  ["2026-09-07","Independência do Brasil","nacional"],["2026-10-12","Nossa Senhora Aparecida","nacional"],
+  ["2026-11-02","Finados","nacional"],["2026-11-15","Proclamação da República","nacional"],
+  ["2026-11-20","Consciência Negra","nacional"],["2026-12-25","Natal","nacional"],
+  // 2026 — facultativos
+  ["2026-02-16","Carnaval","facultativo"],["2026-02-17","Carnaval","facultativo"],
+  ["2026-02-18","Quarta-feira de Cinzas (até 14h)","facultativo"],["2026-06-04","Corpus Christi","facultativo"],
+  ["2026-12-24","Véspera de Natal (após 14h)","facultativo"],["2026-12-31","Véspera de Ano Novo (após 13h)","facultativo"],
+  // 2026 — estadual
+  ["2026-07-02","Independência da Bahia","estadual"],
+  // 2027 — nacionais
+  ["2027-01-01","Confraternização Universal","nacional"],["2027-03-26","Paixão de Cristo","nacional"],
+  ["2027-04-21","Tiradentes","nacional"],["2027-05-01","Dia do Trabalho","nacional"],
+  ["2027-09-07","Independência do Brasil","nacional"],["2027-10-12","Nossa Senhora Aparecida","nacional"],
+  ["2027-11-02","Finados","nacional"],["2027-11-15","Proclamação da República","nacional"],
+  ["2027-11-20","Consciência Negra","nacional"],["2027-12-25","Natal","nacional"],
+  // 2027 — facultativos
+  ["2027-02-08","Carnaval","facultativo"],["2027-02-09","Carnaval","facultativo"],
+  ["2027-02-10","Quarta-feira de Cinzas (até 14h)","facultativo"],["2027-03-25","Quinta-feira Santa","facultativo"],
+  ["2027-05-27","Corpus Christi","facultativo"],
+  ["2027-12-24","Véspera de Natal (após 14h)","facultativo"],["2027-12-31","Véspera de Ano Novo (após 13h)","facultativo"],
+  // 2027 — estadual
+  ["2027-07-02","Independência da Bahia","estadual"]
+];
+// Municipais de Ilhéus (todo ano; confirmados no anexo do Decreto Judiciário nº 09/2026 do TJ-BA: 23/04, 24/06, 28/06 e 15/08)
+const MUNICIPAIS_ILHEUS = [["04-23","São Jorge (padroeiro de Ilhéus)"],["06-24","São João"],["06-28","Dia de Ilhéus"],["08-15","Feriado municipal"]];
+
+function criarFeriadosIniciais(){
+  const lista = FERIADOS_BASE.map(([data,nome,tipo])=>({data,fim:null,nome,tipo,ativo:true,manual:false}));
+  [2026,2027].forEach(a=>MUNICIPAIS_ILHEUS.forEach(([md,nome])=>lista.push({data:a+"-"+md,fim:null,nome,tipo:"municipal",ativo:true,manual:false})));
+  lista.sort((x,y)=>x.data<y.data?-1:x.data>y.data?1:0);
+  lista.forEach((f,i)=>f.id="f"+i);
+  return lista;
+}
+
+/* Converte a lista de feriados em um mapa "AAAA-MM-DD" → {nome,tipo}.
+   Recessos com data final são expandidos dia a dia. Itens inativos são ignorados. */
+function montarBloqueios(feriados){
+  const mapa = {};
+  for(const f of feriados){
+    if(!f.ativo) continue;
+    const ini = parseISO(f.data); if(!ini) continue;
+    let fim = f.fim ? parseISO(f.fim) : ini; if(!fim || fim<ini) fim = ini;
+    let n=0;
+    for(let d=ini; d<=fim && n<800; d=proximoDia(d), n++){
+      const k = fmtISO(d);
+      if(!mapa[k]) mapa[k] = {nome:f.nome, tipo:f.tipo};
+    }
+  }
+  return mapa;
+}
+
+/* ---------- Núcleo de cálculo ----------
+   entrada: {inicio:Date, carga:number, horasDia:number, dias:number[0..6], bloqueios:{ISO:{nome,tipo}}}
+   saída:   {ok, erros[], termino, datas:[{data,horas}], puladas:[{data,nome,tipo}], diasLetivos, ultimaHoras, ultimaParcial} */
+function calcularDatas({inicio, carga, horasDia, dias, bloqueios}){
+  const erros = [];
+  if(!(inicio instanceof Date) || isNaN(inicio.getTime())) erros.push("Informe uma data de início válida.");
+  if(typeof carga!=="number" || !isFinite(carga) || carga<=0) erros.push("Informe uma carga horária total maior que zero.");
+  else if(!ehMeiaHora(carga)) erros.push("A carga horária deve ser múltipla de 0,5 hora.");
+  if(typeof horasDia!=="number" || !isFinite(horasDia) || horasDia<0.5 || horasDia>24) erros.push("As horas de aula por dia devem estar entre 0,5 e 24.");
+  else if(!ehMeiaHora(horasDia)) erros.push("As horas por dia devem ser múltiplas de 0,5 hora.");
+  const sel = new Set((dias||[]).filter(n=>Number.isInteger(n)&&n>=0&&n<=6));
+  if(sel.size===0) erros.push("Selecione ao menos um dia da semana.");
+  if(erros.length) return {ok:false, erros};
+
+  bloqueios = bloqueios || {};
+  const datas=[], puladas=[];
+  let restante = carga, d = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate()), iter=0;
+  while(restante>1e-9){
+    if(++iter>LIMITE_ITER) return {ok:false, erros:["Não foi possível concluir o cálculo dentro do limite de "+LIMITE_ITER+" dias. Revise os dados."]};
+    if(sel.has(d.getDay())){
+      const k = fmtISO(d), b = bloqueios[k];
+      if(b) puladas.push({data:new Date(d), nome:b.nome, tipo:b.tipo});
+      else {
+        const h = Math.min(horasDia, restante);
+        datas.push({data:new Date(d), horas:h});
+        restante = Math.round((restante-h)*2)/2;   // evita resíduo de ponto flutuante
+      }
+    }
+    d = proximoDia(d);
+  }
+  const ult = datas[datas.length-1];
+  return {ok:true, erros:[], termino:ult.data, datas, puladas, diasLetivos:datas.length, ultimaHoras:ult.horas, ultimaParcial: ult.horas<horasDia-1e-9};
+}
+
+/* ---------- Catálogo: busca e importação ---------- */
+function norm(s){ return String(s==null?"":s).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g," ").trim(); }
+
+/* Busca por nome ou código; todas as palavras digitadas precisam aparecer. Máx. 40 resultados. */
+function buscarCursos(catalogo, termo, max=40){
+  const toks = norm(termo).split(" ").filter(Boolean);
+  if(!toks.length) return [];
+  const res=[];
+  for(const c of catalogo){
+    const cod = norm(c.codigo), nom = norm(c.nome), alvo = cod+" "+nom;
+    if(!toks.every(t=>alvo.includes(t))) continue;
+    const pontos = (cod===toks[0]?0 : cod.startsWith(toks[0])?1 : nom.startsWith(toks[0])?2 : 3);
+    res.push({c,pontos});
+  }
+  res.sort((a,b)=>a.pontos-b.pontos || a.c.nome.localeCompare(b.c.nome,"pt-BR") || a.c.carga-b.c.carga);
+  return res.slice(0,max).map(r=>r.c);
+}
+
+function detectarSeparador(linha){
+  const n = ch=>(linha.split(ch).length-1);
+  const t=n("\t"), pv=n(";"), v=n(",");
+  if(t>=pv && t>=v && t>0) return "\t";
+  if(pv>=v && pv>0) return ";";
+  return v>0 ? "," : "\t";
+}
+function dividirLinha(linha, sep){            // respeita aspas simples de CSV
+  const out=[]; let cur="", asp=false;
+  for(let i=0;i<linha.length;i++){
+    const ch=linha[i];
+    if(ch==='"'){ if(asp && linha[i+1]==='"'){cur+='"';i++;} else asp=!asp; }
+    else if(ch===sep && !asp){ out.push(cur); cur=""; }
+    else cur+=ch;
+  }
+  out.push(cur); return out.map(s=>s.trim());
+}
+function lerNumero(s){
+  s = String(s==null?"":s).trim().replace(/\s*h(oras?)?$/i,"");
+  if(!s || !/^\d+([.,]\d+)?$/.test(s)) return NaN;
+  return parseFloat(s.replace(",","."));
+}
+/* Importa texto colado/arquivo. Retorna {cursos, ignoradas:[{linha,motivo}], erro?} */
+function parseCatalogo(texto){
+  const linhas = String(texto||"").replace(/^﻿/,"").split(/\r?\n/);
+  const nao_vazias = linhas.map((l,i)=>({l,i:i+1})).filter(x=>x.l.trim());
+  if(!nao_vazias.length) return {cursos:[],ignoradas:[],erro:"Nenhum texto para importar."};
+  // procura o cabeçalho nas primeiras 15 linhas
+  let hi=-1, sep="\t", col=null;
+  for(let k=0;k<Math.min(15,nao_vazias.length);k++){
+    const s = detectarSeparador(nao_vazias[k].l), cel = dividirLinha(nao_vazias[k].l,s).map(norm);
+    const ic = cel.findIndex(x=>/^(cod\.?|codigo|cod curso|cod\. curso|cod de curso)\b/.test(x) || x==="cod. curso" || /^cod/.test(x));
+    const inm = cel.findIndex(x=>/^(curso|cursos|nome|nome do curso)$/.test(x) || /^nome\b/.test(x));
+    const ich = cel.findIndex(x=>/^(carga|ch\b|c\.h)/.test(x) || x.includes("carga hor"));
+    if(ic>=0 && inm>=0 && ich>=0){ hi=k; sep=s; col={ic,inm,ich}; break; }
+  }
+  if(!col) return {cursos:[],ignoradas:[],erro:"Não encontrei o cabeçalho. Inclua a linha com as colunas de código, curso (ou nome) e carga horária."};
+  const cursos=[], ignoradas=[];
+  for(let k=hi+1;k<nao_vazias.length;k++){
+    const {l,i}=nao_vazias[k], cel=dividirLinha(l,sep);
+    const codigo=(cel[col.ic]||"").replace(/\s+/g," ").trim(), nome=(cel[col.inm]||"").replace(/\s+/g," ").trim(), carga=lerNumero(cel[col.ich]);
+    if(!codigo && !nome && isNaN(carga)) continue;
+    if(!nome){ ignoradas.push({linha:i,motivo:"sem nome"}); continue; }
+    if(!codigo){ ignoradas.push({linha:i,motivo:"sem código"}); continue; }
+    if(!(carga>0) || !ehMeiaHora(carga)){ ignoradas.push({linha:i,motivo:"carga horária inválida"}); continue; }
+    cursos.push({codigo,nome,carga});
+  }
+  return {cursos,ignoradas};
+}
+/* Junta catálogos: mesma combinação código+nome+carga não é duplicada */
+function mesclarCatalogo(base, novos){
+  const vistos = new Set(base.map(c=>c.codigo+"|"+norm(c.nome)+"|"+c.carga));
+  const res = base.slice();
+  for(const c of novos){ const k=c.codigo+"|"+norm(c.nome)+"|"+c.carga; if(!vistos.has(k)){ vistos.add(k); res.push(c); } }
+  return res;
+}
+const ATALHOS = [
+  {id:"seg",rot:"Segunda",dias:[1]},{id:"seg-qui",rot:"Segunda a quinta",dias:[1,2,3,4]},
+  {id:"ter-qui",rot:"Terça e quinta",dias:[2,4]},{id:"seg-qua",rot:"Segunda e quarta",dias:[1,3]},
+  {id:"seg-ter-qua",rot:"Segunda, terça e quarta",dias:[1,2,3]},{id:"seg-sex",rot:"Segunda a sexta",dias:[1,2,3,4,5]},
+  {id:"sab",rot:"Sábado",dias:[6]}
+];
+function descreverDias(dias){
+  const s = dias.slice().sort((a,b)=>a-b), igual=(x)=>x.length===s.length && x.every((v,i)=>v===s[i]);
+  const a = ATALHOS.find(t=>igual(t.dias)); if(a) return a.rot;
+  return s.map(d=>DIAS_ABREV[d]).join(", ");
+}
+function textoResultado({nome,codigo,carga,inicio,dias,horasDia,r}){
+  const L=[];
+  L.push("CÁLCULO DE TÉRMINO — SENAI Bahia · Unidade Ilhéus");
+  L.push("Curso: "+(nome||"(sem nome informado)")+(codigo?" ("+codigo+")":""));
+  L.push("Carga horária total: "+fmtHoras(carga));
+  L.push("Início: "+fmtLongo(inicio));
+  L.push("Dias de aula: "+descreverDias(dias)+" — "+fmtHoras(horasDia)+" por dia");
+  L.push("Dias letivos: "+r.diasLetivos);
+  L.push("Término: "+fmtLongo(r.termino));
+  if(r.ultimaParcial) L.push("Obs.: a última aula terá "+fmtHoras(r.ultimaHoras)+".");
+  if(r.puladas.length){ L.push("Feriados/recessos no período (sem aula):"); r.puladas.forEach(p=>L.push("- "+fmtBR(p.data)+" — "+p.nome)); }
+  L.push("Confira os feriados oficiais antes de divulgar a data.");
+  return L.join("\n");
+}
+/* ==== NUCLEO:FIM ==== */
+
+/* =====================================================================
+   BLOCO 3 — INTERFACE
+   ===================================================================== */
+(function(){
+  if(typeof document==="undefined") return;
+  const $ = id=>document.getElementById(id);
+  const esc = s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const ROT_TIPO = {nacional:"Nacional",estadual:"Estadual",municipal:"Municipal",facultativo:"Facultativo",recesso:"Recesso",regional:"Regional"};
+  const tag = t=>'<span class="tag t-'+esc(t)+'">'+esc(ROT_TIPO[t]||t)+'</span>';
+
+  // Estado em memória (sem localStorage)
+  let catalogo = CATALOGO_BASE.slice();
+  let feriados = criarFeriadosIniciais();
+  let diasSel = new Set([1,2,3,4,5]);
+  let atalhoAtivo = "seg-sex";
+  let cursoSel = null;
+  let ultimo = null, seqId = 1000;
+
+  const hojeISO = ()=>fmtISO(new Date());
+  $("inicio").value = hojeISO();
+
+  /* ---- dias da semana ---- */
+  function desenharDias(){
+    $("atalhos").innerHTML = ATALHOS.map(a=>'<button type="button" class="chip" data-at="'+a.id+'" aria-pressed="'+(atalhoAtivo===a.id)+'">'+esc(a.rot)+'</button>').join("");
+    $("dias").innerHTML = DIAS_CURTO.map((n,i)=>'<button type="button" data-d="'+i+'" aria-pressed="'+diasSel.has(i)+'" aria-label="'+DIAS_LONGO[i]+'">'+n+'</button>').join("");
+  }
+  $("atalhos").addEventListener("click",e=>{
+    const b=e.target.closest("[data-at]"); if(!b) return;
+    const a=ATALHOS.find(x=>x.id===b.dataset.at); atalhoAtivo=a.id; diasSel=new Set(a.dias); desenharDias();
+  });
+  $("dias").addEventListener("click",e=>{
+    const b=e.target.closest("[data-d]"); if(!b) return;
+    const d=+b.dataset.d; diasSel.has(d)?diasSel.delete(d):diasSel.add(d); atalhoAtivo=null; desenharDias();
+  });
+  desenharDias();
+
+  /* ---- busca no catálogo ---- */
+  function potTag(c){
+    if(!c.pot) return "";
+    const p=norm(c.pot);
+    return (p.includes("comunidade")) ? "" : ' <span class="tag t-pot">'+esc(c.pot.toLowerCase().includes("empresa")?"Empresa":c.pot)+'</span>';
+  }
+  function mostrarResultados(){
+    const q=$("busca").value, ul=$("resultados");
+    if(!q.trim()){ ul.hidden=true; ul.innerHTML=""; return; }
+    const r=buscarCursos(catalogo,q,40); ul.hidden=false;
+    if(!r.length){ ul.innerHTML='<li class="vazio">Nenhum curso encontrado. Use os campos abaixo para preencher manualmente.</li>'; return; }
+    ul.innerHTML=r.map((c,i)=>'<li><button type="button" data-i="'+i+'"><span class="ch">'+esc(fmtHoras(c.carga))+'</span><span class="cod">'+esc(c.codigo)+'</span>'+esc(c.nome)+potTag(c)+'</button></li>').join("");
+    ul._r=r;
+  }
+  $("busca").addEventListener("input",mostrarResultados);
+  $("resultados").addEventListener("click",e=>{
+    const b=e.target.closest("[data-i]"); if(!b) return;
+    selecionar($("resultados")._r[+b.dataset.i]);
+  });
+  function selecionar(c){
+    cursoSel=c; $("nome").value=c.nome; $("codigo").value=c.codigo; $("carga").value=c.carga;
+    $("busca").value=""; $("resultados").hidden=true; $("resultados").innerHTML="";
+    desenharFaixa();
+  }
+  function desenharFaixa(){
+    const f=$("faixa");
+    if(!cursoSel){ f.className="faixa"; f.innerHTML=""; return; }
+    const ed = String(cursoSel.carga)!==String($("carga").value.trim().replace(",","."));
+    f.className="faixa on";
+    f.innerHTML='<span>CURSO SELECIONADO · '+esc(cursoSel.codigo)+'</span><b>'+esc(cursoSel.nome)+'</b><span>Carga horária do catálogo: '+esc(fmtHoras(cursoSel.carga))+(ed?' · valor editado no cálculo: '+esc($("carga").value||"—")+' h':'')+'</span>'+potTag(cursoSel);
+  }
+  $("carga").addEventListener("input",desenharFaixa);
+  function limparSeEditado(){
+    if(cursoSel && ($("nome").value.trim()!==cursoSel.nome || $("codigo").value.trim()!==cursoSel.codigo)){ cursoSel=null; desenharFaixa(); }
+  }
+  $("nome").addEventListener("input",limparSeEditado);
+  $("codigo").addEventListener("input",limparSeEditado);
+
+  /* ---- importação ---- */
+  function importar(texto){
+    const r=parseCatalogo(texto), out=$("imp-res");
+    if(r.erro){ out.style.color="var(--err)"; out.textContent=r.erro; return; }
+    if(!r.cursos.length){ out.style.color="var(--err)"; out.textContent="Nenhum curso válido foi encontrado. Linhas ignoradas: "+r.ignoradas.length+"."; return; }
+    const antes=catalogo.length;
+    catalogo = $("imp-subst").checked ? r.cursos.slice() : mesclarCatalogo(catalogo,r.cursos);
+    cursoSel=null; desenharFaixa();
+    const motivos={}; r.ignoradas.forEach(x=>motivos[x.motivo]=(motivos[x.motivo]||0)+1);
+    const det=Object.keys(motivos).map(k=>motivos[k]+" "+k).join(", ");
+    out.style.color="var(--t-estadual)";
+    out.textContent=r.cursos.length+" curso(s) lidos; catálogo agora com "+catalogo.length+" curso(s)"+($("imp-subst").checked?" (substituído)":" (antes: "+antes+")")+". Linhas ignoradas: "+r.ignoradas.length+(det?" ("+det+")":"")+".";
+    mostrarResultados();
+  }
+  $("imp-btn").addEventListener("click",()=>importar($("imp-txt").value));
+  $("imp-arq").addEventListener("change",e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const fr=new FileReader(); fr.onload=()=>importar(String(fr.result)); fr.onerror=()=>{$("imp-res").textContent="Não foi possível ler o arquivo.";};
+    fr.readAsText(f,"UTF-8");
+  });
+
+  /* ---- feriados ---- */
+  function desenharFeriados(){
+    $("fer-lista").innerHTML=feriados.map(f=>{
+      const ini=parseISO(f.data), fim=f.fim?parseISO(f.fim):null;
+      const dt=ini?fmtBR(ini)+(fim&&fim>ini?" a "+fmtBR(fim):""):esc(f.data);
+      return '<li class="'+(f.ativo?"":"off")+'"><input type="checkbox" data-f="'+esc(f.id)+'" '+(f.ativo?"checked":"")+' aria-label="Considerar '+esc(f.nome)+' como dia sem aula"><span class="dt">'+esc(dt)+'</span><span class="nm">'+esc(f.nome)+' '+tag(f.tipo)+'</span>'+(f.manual?'<button type="button" class="x" data-x="'+esc(f.id)+'" aria-label="Remover '+esc(f.nome)+'">Remover</button>':'<span></span>')+'</li>';
+    }).join("");
+  }
+  $("fer-lista").addEventListener("change",e=>{
+    const id=e.target.dataset.f; if(!id) return;
+    const f=feriados.find(x=>x.id===id); f.ativo=e.target.checked;
+    sincronizarFac(); desenharFeriados();
+  });
+  $("fer-lista").addEventListener("click",e=>{
+    const b=e.target.closest("[data-x]"); if(!b) return;
+    feriados=feriados.filter(x=>x.id!==b.dataset.x); desenharFeriados();
+  });
+  function sincronizarFac(){ const fs=feriados.filter(f=>f.tipo==="facultativo"); $("fac").checked = fs.length>0 && fs.every(f=>f.ativo); }
+  $("fac").addEventListener("change",()=>{ feriados.forEach(f=>{ if(f.tipo==="facultativo") f.ativo=$("fac").checked; }); desenharFeriados(); });
+  $("f-add").addEventListener("click",()=>{
+    const m=$("f-msg"), ini=parseISO($("f-ini").value), fimV=$("f-fim").value, fim=fimV?parseISO(fimV):null, nome=$("f-nome").value.trim();
+    m.style.color="var(--err)";
+    if(!ini){ m.textContent="Informe uma data inicial válida."; return; }
+    if(fimV && (!fim||fim<ini)){ m.textContent="A data final deve ser válida e não anterior à inicial."; return; }
+    if(!nome){ m.textContent="Informe o nome do feriado ou recesso."; return; }
+    feriados.push({id:"f"+(++seqId),data:fmtISO(ini),fim:fim&&fim>ini?fmtISO(fim):null,nome,tipo:$("f-tipo").value,ativo:true,manual:true});
+    feriados.sort((a,b)=>a.data<b.data?-1:a.data>b.data?1:0);
+    desenharFeriados(); m.style.color="var(--t-estadual)"; m.textContent="“"+nome+"” adicionado.";
+    $("f-nome").value=""; $("f-ini").value=""; $("f-fim").value="";
+  });
+  desenharFeriados();
+
+  /* ---- cálculo e resultado ---- */
+  function num(id){ const v=$(id).value.trim().replace(",","."); return v===""?NaN:Number(v); }
+  function calcular(){
+    const inicio=parseISO($("inicio").value), carga=num("carga"), horasDia=num("hdia"), dias=Array.from(diasSel).sort((a,b)=>a-b);
+    const r=calcularDatas({inicio,carga,horasDia,dias,bloqueios:montarBloqueios(feriados)});
+    const res=$("res");
+    if(!r.ok){
+      ultimo=null;
+      res.innerHTML='<div class="erro" role="alert"><strong>Não foi possível calcular:</strong><ul style="margin:6px 0 0;padding-left:20px">'+r.erros.map(x=>'<li>'+esc(x)+'</li>').join("")+'</ul></div>';
+      return;
+    }
+    const nome=$("nome").value.trim(), codigo=$("codigo").value.trim();
+    ultimo={nome,codigo,carga,inicio,dias,horasDia,r};
+    let h='<div class="termino"><small>Data de término</small><strong>'+esc(fmtLongo(r.termino))+'</strong><em>'+esc(fmtBR(r.termino))+' · '+r.diasLetivos+' dia(s) letivo(s)</em></div>';
+    if(r.ultimaParcial) h+='<div class="aviso" role="status">Atenção: a última aula terá apenas '+esc(fmtHoras(r.ultimaHoras))+' (menos que as '+esc(fmtHoras(horasDia))+' diárias).</div>';
+    h+='<dl class="res"><dt>Curso</dt><dd>'+esc(nome||"— não informado —")+'</dd>'+(codigo?'<dt>Código</dt><dd class="mono">'+esc(codigo)+'</dd>':'')
+      +'<dt>Carga horária total</dt><dd class="mono">'+esc(fmtHoras(carga))+'</dd><dt>Data de início</dt><dd>'+esc(fmtLongo(inicio))+'</dd>'
+      +'<dt>Dias de aula</dt><dd>'+esc(descreverDias(dias))+'</dd><dt>Horas por dia</dt><dd class="mono">'+esc(fmtHoras(horasDia))+'</dd>'
+      +'<dt>Dias letivos</dt><dd class="mono">'+r.diasLetivos+'</dd><dt>Data de término</dt><dd>'+esc(fmtLongo(r.termino))+'</dd></dl>';
+    h+='<h3 style="font-size:18px;margin:20px 0 6px">Feriados e recessos que caíram em dia de aula</h3>';
+    h+= r.puladas.length ? '<ul class="pul">'+r.puladas.map(p=>'<li><span class="mono">'+esc(fmtBR(p.data))+'</span><span>'+esc(p.nome)+'</span>'+tag(p.tipo)+'</li>').join("")+'</ul>' : '<p class="dica">Nenhum feriado ou recesso caiu em dia de aula neste período.</p>';
+    h+='<details class="imp"><summary>Todas as datas de aula ('+r.diasLetivos+')</summary><div class="corpo"><ul class="datas">'+r.datas.map(x=>'<li>'+esc(fmtBR(x.data))+' '+DIAS_ABREV[x.data.getDay()]+(x.horas<horasDia?' ('+esc(fmtHoras(x.horas))+')':'')+'</li>').join("")+'</ul></div></details>';
+    h+='<div class="acoes"><button type="button" id="b-copiar">Copiar resultado</button><button type="button" id="b-imprimir">Imprimir</button></div><p class="ok-msg" id="msg-copia" role="status"></p>';
+    res.innerHTML=h;
+    $("b-copiar").onclick=copiar; $("b-imprimir").onclick=()=>window.print();
+    if(window.matchMedia && window.matchMedia("(max-width:900px)").matches) $("painel-res").scrollIntoView({behavior:"smooth",block:"start"});
+  }
+  $("calcular").addEventListener("click",calcular);
+
+  function copiar(){
+    if(!ultimo) return;
+    const t=textoResultado(ultimo), msg=$("msg-copia");
+    const ok=()=>{ msg.textContent="Resultado copiado."; };
+    const alt=()=>{ const ta=$("copia-alt"); ta.value=t; ta.focus(); ta.select(); try{ document.execCommand("copy")?ok():(msg.textContent="Não foi possível copiar automaticamente."); }catch(e){ msg.textContent="Não foi possível copiar automaticamente."; } };
+    if(navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(ok,alt); else alt();
+  }
+})();
+</script>
+</body>
+</html>
